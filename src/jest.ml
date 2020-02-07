@@ -7,6 +7,8 @@ let mapMod f = function
 | `Just a -> `Just (f a)
 | `Not a -> `Not (f a)
 
+type ('fn, 'args, 'ret) mockFn
+
 type assertion =
 | Ok : assertion
 | Fail : string -> assertion
@@ -23,6 +25,8 @@ type assertion =
 | LessThanOrEqual : ('a * 'a) modifier -> assertion
 | StringContains : (string * string) modifier -> assertion
 | StringMatch : (string * Js.Re.t) modifier -> assertion
+
+| HaveBeenCalledTimes: (('fn, _, _) mockFn * int) modifier -> assertion
 
 | Throws : (unit -> _) modifier -> assertion
 | ThrowsException : ((unit -> _) * exn) modifier -> assertion
@@ -97,6 +101,9 @@ end = struct
   | StringMatch `Not (s, re) -> (expect s) ## not ## toMatch re
   | StringContains `Just (a, b) -> (expect a) ## toEqual (stringContaining b)
   | StringContains `Not (a, b) -> (expect a) ## not ## toEqual (stringContaining b)
+
+  | HaveBeenCalledTimes `Just (a, b) -> (expect a) ## toHaveBeenCalledTimes b
+  | HaveBeenCalledTimes `Not (a, b) -> (expect a) ## not## toHaveBeenCalledTimes b
 
   | Throws `Just f -> (expect f) ## toThrow ()
   | Throws `Not f -> (expect f) ## not ## toThrow ()
@@ -334,6 +341,9 @@ module Expect = struct
   let toHaveLength l p =
     ArrayLength (mapMod (fun a -> (a, l)) p)
 
+  let toHaveBeenCalledTimes b p =
+    HaveBeenCalledTimes (mapMod (fun a -> (a, b)) p)
+
   let toMatch s p =
     StringMatch (mapMod (fun a -> (a, Js.Re.fromString s)) p)
 
@@ -399,7 +409,7 @@ end
 module MockJs = struct
   (** experimental *)
 
-  type ('fn, 'args, 'ret) fn
+  type ('fn, 'a, 'b) fn = ('fn, 'a, 'b) mockFn
 
   [%%bs.raw {|
     function makeNewMock(self) {

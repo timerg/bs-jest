@@ -1,5 +1,7 @@
 type assertion
 
+type ('fn, 'args, 'ret) mockFn
+
 module type Asserter = sig
   type 'a t
   val affirm : 'a t -> unit
@@ -109,6 +111,7 @@ module Expect : sig
   val toContainString : string -> [< string partial] -> assertion
   val toEqual : 'a -> [< 'a partial] -> assertion
   val toHaveLength : int -> [< 'a array partial] -> assertion
+  val toHaveBeenCalledTimes: int -> [< ('a, 'b, 'c) mockFn partial] -> assertion
   val toMatch : string -> [< string partial] -> assertion
   val toMatchRe : Js.Re.t -> [< string partial] -> assertion
   val toMatchSnapshot : _ plainPartial -> assertion
@@ -151,7 +154,7 @@ end
 module MockJs : sig
   (** experimental *)
 
-  type ('fn, 'args, 'ret) fn
+  type ('fn, 'args, 'ret) fn = ('fn, 'args, 'ret) mockFn
 
   val new0 : (unit -> 'ret, unit, 'ret) fn -> 'ret
   val new1 : 'a -> ('a -> 'ret, 'a, 'ret) fn -> 'ret
